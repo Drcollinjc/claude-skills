@@ -50,3 +50,20 @@ After each task:
 - Version: 1.0.0
 - Last Updated: $(date +%Y-%m-%d)
 - Evolution: Continuous via retrospectives
+
+## Document Creation Skills
+- documents/powerpoint - PowerPoint presentations
+- documents/google-docs - Google Docs creation
+- documents/google-sheets - Spreadsheet automation
+- documents/google-slides - Google Slides
+- documents/reports - Report generation
+
+## Integration Skills
+- integrations/google-workspace - Google Workspace integration
+
+## Skill Loading for Documents
+When task involves:
+- "presentation", "slides", "deck" → load documents/powerpoint
+- "document", "doc", "write" → load documents/google-docs
+- "spreadsheet", "excel", "data" → load documents/google-sheets
+- "report" → load documents/reports + relevant document skills
