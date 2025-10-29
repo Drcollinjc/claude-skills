@@ -1,0 +1,59 @@
+name: Validate Skill Updates
+
+on:
+  pull_request:
+    paths:
+      - 'skills/**'
+      - 'orchestrator/**'
+      - 'lessons/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Validate skill format
+        run: |
+          echo "Validating skill files..."
+          for file in skills/**/*.md orchestrator/*.md; do
+            if [ -f "$file" ]; then
+              echo "✓ Checking $file"
+              # Check for required sections
+              grep -q "^# .* v[0-9]" "$file" || echo "⚠️  Missing version header in $file"
+              grep -q "^## Purpose" "$file" || echo "⚠️  Missing Purpose section in $file"
+              grep -q "^## Evolution" "$file" || echo "⚠️  Missing Evolution section in $file"
+            fi
+          done
+
+      - name: Check skill size
+        run: |
+          echo "Checking skill sizes..."
+          for file in skills/**/*.md; do
+            if [ -f "$file" ]; then
+              lines=$(wc -l < "$file")
+              if [ $lines -gt 500 ]; then
+                echo "⚠️  $file has $lines lines (recommended: <500)"
+              else
+                echo "✓ $file size ok ($lines lines)"
+              fi
+            fi
+          done
+
+      - name: Validate lessons format
+        run: |
+          echo "Validating lesson files..."
+          for file in lessons/*.md; do
+            if [ -f "$file" ]; then
+              echo "✓ Checking $file"
+              grep -q "^# Retrospective:" "$file" || echo "⚠️  Invalid lesson format in $file"
+            fi
+          done
+
+      - name: Check for duplicates
+        run: |
+          echo "Checking for duplicate patterns..."
+          # Basic duplicate detection
+          find skills -name "*.md" -exec grep -h "^## " {} \; | sort | uniq -d | while read dup; do
+            echo "⚠️  Possible duplicate section: $dup"
+          done

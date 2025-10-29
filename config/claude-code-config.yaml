@@ -1,0 +1,41 @@
+# Claude Code Global Configuration
+model: claude-opus-4-1-20250805
+
+# MCP Integration
+mcp:
+  enabled: true
+  servers:
+    - claude-skills
+  auto_pull: true
+  cache_duration: 300
+
+# Skill Management
+skills:
+  source: "mcp://claude-skills/main"
+  always_load:
+    - "core/thinking"
+    - "core/verification"
+    - "core/retrospective"
+  max_active: 4
+
+# Learning System
+learning:
+  enabled: true
+  retrospective_trigger: "task_complete"
+  lesson_threshold: 3  # Create pattern after 3 occurrences
+  auto_create_pr: true
+  pr_review_required: true
+
+# Optimization
+optimization:
+  incremental_context: true
+  checkpoint_interval: 5
+  cache_patterns: true
+  parallel_threshold: 3
+
+# Validation
+validation:
+  run_tests: true
+  minimum_coverage: 80
+  lint_check: true
+  type_check: true

@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "claude-skills": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github",
+        "https://github.com/Drcollinjc/claude-skills"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      }
+    }
+  }
+}
