@@ -1,52 +1,107 @@
-# Claude Code Orchestrator v1.0.0
+# Claude Code Orchestrator v1.1.0
 
 ## Role
-Intelligent task routing and skill management for Claude Code.
+Intelligent task routing and skill management for Claude Code and SpecKit workflows.
 
 ## Core Process
-1. **Analyze** - Understand the task and requirements
+1. **Analyze** - Understand the command and requirements
 2. **Load** - Select and load relevant skills from GitHub
 3. **Execute** - Apply skills with focused context
 4. **Learn** - Run retrospective and capture lessons
 
-## Skill Loading Logic
+## SpecKit Command Mapping
+
 ```python
-def select_skills(task_description):
-    """Select optimal skills for task"""
-    # Always load core skills
-    skills = ["core/thinking", "core/verification"]
+SPECKIT_SKILLS = {
+    "specify": [
+        "core/thinking",
+        "core/verification"
+    ],
+    "clarify": [
+        "core/thinking"
+    ],
+    "plan": [
+        "core/thinking",
+        "core/verification"
+    ],
+    "implement": [
+        "core/thinking",
+        "core/verification",
+        "development/python-tdd",
+        "development/debugging",
+        "core/retrospective"
+    ],
+    "tasks": [
+        "core/thinking"
+    ],
+    "analyze": [
+        "core/verification"
+    ]
+}
 
-    # Add specialized skills based on keywords
-    task_lower = task_description.lower()
-
-    if any(word in task_lower for word in ["test", "tdd", "pytest"]):
-        skills.append("testing/unit-testing")
-
-    if any(word in task_lower for word in ["lambda", "serverless", "api"]):
-        skills.append("infrastructure/serverless")
-
-    if any(word in task_lower for word in ["debug", "fix", "error"]):
-        skills.append("development/debugging")
-
-    # Load retrospective for learning
-    skills.append("core/retrospective")
-
+def select_skills_for_command(command_name, task_description=""):
+    """Select skills based on SpecKit command"""
+    # Start with command-specific skills
+    skills = SPECKIT_SKILLS.get(command_name, ["core/thinking"])
+    
+    # Add context-based skills from description
+    if task_description:
+        task_lower = task_description.lower()
+        
+        if any(word in task_lower for word in ["test", "tdd", "pytest"]):
+            if "development/python-tdd" not in skills:
+                skills.append("development/python-tdd")
+        
+        if any(word in task_lower for word in ["lambda", "serverless", "api"]):
+            if "infrastructure/serverless" not in skills:
+                skills.append("infrastructure/serverless")
+        
+        if any(word in task_lower for word in ["debug", "fix", "error"]):
+            if "development/debugging" not in skills:
+                skills.append("development/debugging")
+    
     return skills
 ```
 
+## Skill Loading Instructions
+
+When a SpecKit command is invoked:
+
+1. **Identify command**: Extract command name (e.g., "specify", "implement")
+2. **Load base skills**: Fetch skills from `SPECKIT_SKILLS[command_name]`
+3. **Load context skills**: Add skills based on task description keywords
+4. **Fetch from GitHub**: Load each skill from `Drcollinjc/claude-skills@project/animis-analytics-agent`
+5. **Combine with constitution**: Apply local `.specify/memory/constitution.md` constraints
+6. **Execute**: Run SpecKit workflow with skill context
+7. **Retrospective**: After completion, capture lessons and update project branch
+
+## Example: /speckit.implement Flow
+
+```
+1. Orchestrator identifies: command="implement"
+2. Base skills loaded: thinking, verification, python-tdd, debugging, retrospective
+3. Skills fetched from: github.com/Drcollinjc/claude-skills/project/animis-analytics-agent/skills/
+4. Constitution loaded: .specify/memory/constitution.md
+5. Implementation executes with combined context
+6. Retrospective runs
+7. Lessons committed to project branch
+```
+
 ## Context Management
-- Maximum 3-4 active skills
-- Incremental context updates
-- Checkpoint every 5 iterations
+- Maximum 4-5 active skills per command
+- Skills loaded at command start
+- Retrospective always runs at command end (for implement)
 
 ## Learning Integration
-After each task:
-1. Automatically trigger retrospective
+
+After SpecKit commands complete:
+1. Run retrospective skill (for implement, plan)
 2. Extract patterns and lessons
-3. Generate skill improvements
-4. Create PR if improvements found
+3. Update relevant skills in project branch
+4. Optionally PR to main for universal improvements
 
 ## Version
-- Version: 1.0.0
-- Last Updated: $(date +%Y-%m-%d)
+- Version: 1.1.0
+- Last Updated: 2025-01-10
 - Evolution: Continuous via retrospectives
+- Branch: project/animis-analytics-agent
