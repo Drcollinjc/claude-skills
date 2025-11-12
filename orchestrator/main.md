@@ -1,4 +1,4 @@
-# Claude Code Orchestrator v1.1.0
+# Claude Code Orchestrator v1.2.0
 
 ## Role
 Intelligent task routing and skill management for Claude Code and SpecKit workflows.
@@ -17,11 +17,17 @@ SPECKIT_SKILLS = {
         "core/thinking",
         "core/verification"
     ],
+    "architecture": [
+        "core/thinking",
+        "development/cloud-architecture",
+        "core/verification"
+    ],
     "clarify": [
         "core/thinking"
     ],
     "plan": [
         "core/thinking",
+        "development/cloud-architecture",
         "core/verification"
     ],
     "implement": [
@@ -52,6 +58,10 @@ def select_skills_for_command(command_name, task_description=""):
             if "development/python-tdd" not in skills:
                 skills.append("development/python-tdd")
         
+        if any(word in task_lower for word in ["architecture", "aws", "infrastructure", "orchestration", "database"]):
+            if "development/cloud-architecture" not in skills:
+                skills.append("development/cloud-architecture")
+        
         if any(word in task_lower for word in ["lambda", "serverless", "api"]):
             if "infrastructure/serverless" not in skills:
                 skills.append("infrastructure/serverless")
@@ -67,7 +77,7 @@ def select_skills_for_command(command_name, task_description=""):
 
 When a SpecKit command is invoked:
 
-1. **Identify command**: Extract command name (e.g., "specify", "implement")
+1. **Identify command**: Extract command name (e.g., "specify", "architecture", "implement")
 2. **Load base skills**: Fetch skills from `SPECKIT_SKILLS[command_name]`
 3. **Load context skills**: Add skills based on task description keywords
 4. **Fetch from GitHub**: Load each skill from `Drcollinjc/claude-skills@project/animis-analytics-agent`
@@ -101,7 +111,8 @@ After SpecKit commands complete:
 4. Optionally PR to main for universal improvements
 
 ## Version
-- Version: 1.1.0
-- Last Updated: 2025-01-10
+- Version: 1.2.0
+- Last Updated: 2025-11-12
+- Changes: Added cloud-architecture skill for /speckit.architecture and /speckit.plan commands
 - Evolution: Continuous via retrospectives
 - Branch: project/animis-analytics-agent
