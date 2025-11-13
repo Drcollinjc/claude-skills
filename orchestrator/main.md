@@ -20,6 +20,7 @@ SPECKIT_SKILLS = {
     "architecture": [
         "core/thinking",
         "development/cloud-architecture",
+        "development/data-modeling",     # NEW: Data modeling for architecture phase
         "core/verification"
     ],
     "clarify": [
@@ -28,6 +29,7 @@ SPECKIT_SKILLS = {
     "plan": [
         "core/thinking",
         "development/cloud-architecture",
+        "development/data-modeling",     # Reference during planning
         "core/verification"
     ],
     "implement": [
@@ -49,27 +51,38 @@ def select_skills_for_command(command_name, task_description=""):
     """Select skills based on SpecKit command"""
     # Start with command-specific skills
     skills = SPECKIT_SKILLS.get(command_name, ["core/thinking"])
-    
+
     # Add context-based skills from description
     if task_description:
         task_lower = task_description.lower()
-        
+
         if any(word in task_lower for word in ["test", "tdd", "pytest"]):
             if "development/python-tdd" not in skills:
                 skills.append("development/python-tdd")
-        
+
         if any(word in task_lower for word in ["architecture", "aws", "infrastructure", "orchestration", "database"]):
             if "development/cloud-architecture" not in skills:
                 skills.append("development/cloud-architecture")
-        
+
+        # Data modeling keyword detection
+        if any(word in task_lower for word in [
+            "data model", "schema", "database design", "entities",
+            "tables", "columns", "relationships", "medallion",
+            "dimensional model", "star schema", "normalized",
+            "denormalized", "fact table", "dimension", "event sourcing",
+            "streaming events", "kafka", "kinesis"
+        ]):
+            if "development/data-modeling" not in skills:
+                skills.append("development/data-modeling")
+
         if any(word in task_lower for word in ["lambda", "serverless", "api"]):
             if "infrastructure/serverless" not in skills:
                 skills.append("infrastructure/serverless")
-        
+
         if any(word in task_lower for word in ["debug", "fix", "error"]):
             if "development/debugging" not in skills:
                 skills.append("development/debugging")
-    
+
     return skills
 ```
 
@@ -112,7 +125,7 @@ After SpecKit commands complete:
 
 ## Version
 - Version: 1.2.0
-- Last Updated: 2025-11-12
-- Changes: Added cloud-architecture skill for /speckit.architecture and /speckit.plan commands
+- Last Updated: 2025-11-13
+- Changes: Added data-modeling skill for /speckit.architecture and /speckit.plan commands
 - Evolution: Continuous via retrospectives
 - Branch: project/animis-analytics-agent
