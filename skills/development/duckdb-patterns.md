@@ -1,4 +1,4 @@
-# DuckDB Patterns Skill v1.0.0
+# DuckDB Patterns Skill v1.1.0
 
 ## Purpose
 DuckDB-specific patterns and common pitfalls when migrating from PostgreSQL.
@@ -60,6 +60,34 @@ conn = duckdb.connect('path.duckdb', read_only=True)
 conn = duckdb.connect('path.duckdb', read_only=False)
 ```
 
+### Per-Request Connections for Web/Agent Applications (NEW in v1.1.0)
+
+For web applications and agents handling concurrent requests, create fresh connections per request:
+
+```python
+def execute_query(db_path: str, query: str) -> list[dict]:
+    """Execute query with per-request connection.
+    
+    Why per-request:
+    - Thread-safe without locks
+    - No connection pool overhead for file-based DB
+    - Each request gets isolated connection state
+    - Automatic cleanup on function exit
+    """
+    conn = duckdb.connect(db_path, read_only=True)
+    try:
+        result = conn.execute(query).fetchdf()
+        return result.to_dict('records')
+    finally:
+        conn.close()
+```
+
+**Why NOT connection pooling**:
+- DuckDB file-based connections are fast to create (~1ms)
+- Pooling adds complexity without benefit
+- Shared connections cause file locking issues
+- Per-request is simpler and equally performant
+
 ### File Locking
 
 DuckDB uses file locking:
@@ -94,6 +122,31 @@ SELECT * FROM main_gold.dim_customer;
 SELECT DISTINCT table_schema FROM information_schema.tables;
 ```
 
+## NL Agent System Prompt Patterns (NEW in v1.1.0)
+
+When building NL-to-SQL agents with DuckDB:
+
+### Domain-to-Table Mapping
+
+Include explicit mappings in system prompt:
+```
+Domain Mappings:
+- "customers", "accounts", "companies" → dim_customer table
+- "deals", "opportunities", "sales" → fct_opportunities table
+- "usage", "product usage", "engagement" → fct_product_usage table
+```
+
+### DuckDB-Specific SQL Instructions
+
+Include in system prompt:
+```
+DuckDB SQL Notes:
+- Use STRFTIME(date_column, '%Y-%m') for date formatting
+- Use QUARTER(date_column) for quarter extraction
+- String concatenation: col1 || '-' || col2
+- Date arithmetic: date_column + INTERVAL 7 DAY
+```
+
 ## Anti-Patterns
 
 - Using `header=TRUE` instead of `header=1`
@@ -101,6 +154,9 @@ SELECT DISTINCT table_schema FROM information_schema.tables;
 - Opening analytics databases in write mode
 - Not validating CSV reading before building models
 - Assuming INTEGER IDs when data uses TEXT
+- Using shared connections for concurrent web requests (NEW)
+- Connection pooling for file-based DuckDB (NEW)
 
 ## Evolution
 - v1.0.0: Initial patterns from 002-duckdb-medallion feature
+- v1.1.0: Added per-request connection pattern, NL agent system prompt patterns from 003-nl-analytics-agent
