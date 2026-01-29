@@ -1,7 +1,66 @@
-# DuckDB Patterns Skill v1.1.0
+# DuckDB Patterns Skill v1.2.0
 
 ## Purpose
 DuckDB-specific patterns and common pitfalls when migrating from PostgreSQL.
+
+## Data Discovery Queries (NEW in v1.2.0)
+
+**When to Use**: BEFORE implementing any filtering, aggregation, or business logic.
+
+**Why**: Schema shows structure, but VALUES matter for business logic. Hardcoded assumptions create silent failures.
+
+### Essential Discovery Queries
+
+```sql
+-- 1. Discover categorical values BEFORE implementing filters
+SELECT DISTINCT segment, COUNT(*) as count 
+FROM opportunities 
+GROUP BY segment
+ORDER BY count DESC;
+
+-- 2. Check for NULL patterns in important columns
+SELECT 
+    COUNT(*) as total,
+    COUNT(segment) as non_null_segment,
+    COUNT(industry) as non_null_industry
+FROM opportunities;
+
+-- 3. Understand value distributions
+SELECT 
+    industry,
+    COUNT(*) as count,
+    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 1) as pct
+FROM opportunities
+GROUP BY industry
+ORDER BY count DESC;
+
+-- 4. Check date ranges
+SELECT 
+    MIN(created_date) as earliest,
+    MAX(created_date) as latest,
+    COUNT(DISTINCT DATE_TRUNC('month', created_date)) as months
+FROM opportunities;
+
+-- 5. Verify foreign key values exist
+SELECT DISTINCT o.customer_id
+FROM opportunities o
+LEFT JOIN customers c ON o.customer_id = c.customer_id
+WHERE c.customer_id IS NULL;  -- Orphaned records
+```
+
+### Discovery Checklist
+
+```markdown
+## Data Discovery (Run BEFORE Implementation)
+
+- [ ] List all distinct values for categorical columns
+- [ ] Check NULL counts for required fields
+- [ ] Verify date ranges match expected period
+- [ ] Confirm foreign key relationships are valid
+- [ ] Document actual values vs assumed values
+```
+
+**Common Mistake**: Assuming segment values are "SMB", "Mid-Market", "Enterprise" when actual data has "Small Business", "Mid-Market", "Enterprise", "Strategic".
 
 ## CSV Reading
 
@@ -60,7 +119,7 @@ conn = duckdb.connect('path.duckdb', read_only=True)
 conn = duckdb.connect('path.duckdb', read_only=False)
 ```
 
-### Per-Request Connections for Web/Agent Applications (NEW in v1.1.0)
+### Per-Request Connections for Web/Agent Applications
 
 For web applications and agents handling concurrent requests, create fresh connections per request:
 
@@ -122,7 +181,7 @@ SELECT * FROM main_gold.dim_customer;
 SELECT DISTINCT table_schema FROM information_schema.tables;
 ```
 
-## NL Agent System Prompt Patterns (NEW in v1.1.0)
+## NL Agent System Prompt Patterns
 
 When building NL-to-SQL agents with DuckDB:
 
@@ -154,9 +213,12 @@ DuckDB SQL Notes:
 - Opening analytics databases in write mode
 - Not validating CSV reading before building models
 - Assuming INTEGER IDs when data uses TEXT
-- Using shared connections for concurrent web requests (NEW)
-- Connection pooling for file-based DuckDB (NEW)
+- Using shared connections for concurrent web requests
+- Connection pooling for file-based DuckDB
+- Assuming data values without running discovery queries (NEW)
+- Hardcoding categorical values without checking actual data (NEW)
 
 ## Evolution
 - v1.0.0: Initial patterns from 002-duckdb-medallion feature
 - v1.1.0: Added per-request connection pattern, NL agent system prompt patterns from 003-nl-analytics-agent
+- v1.2.0: Added data discovery queries section from 004-icp-decision-surface

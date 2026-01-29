@@ -1,4 +1,4 @@
-# Verification Skill v1.1.0
+# Verification Skill v1.2.0
 
 ## Purpose
 Verify work meets requirements through systematic validation.
@@ -25,6 +25,47 @@ Verify work meets requirements through systematic validation.
 3. Verify transformations produce expected output
 4. Check foreign key relationships
 5. Report: PASS or FAIL
+
+### API Contract Verification (NEW in v1.2.0)
+
+**When to Use**: Before building frontend against backend API endpoints.
+
+**Process**:
+1. Call actual API endpoint with test data
+2. Capture actual response structure
+3. Compare against contract/spec definition
+4. Document any deviations
+5. Update frontend types OR fix backend
+
+**Checklist**:
+```markdown
+## API Contract Validation
+
+- [ ] Endpoint returns expected HTTP status
+- [ ] Response content-type matches spec (application/json)
+- [ ] Top-level response structure matches contract
+- [ ] Nested object shapes match contract
+- [ ] Field names match (check camelCase vs snake_case)
+- [ ] Field types match (string, number, array, object)
+- [ ] Optional fields handled correctly (null vs missing)
+- [ ] Array items have correct shape
+- [ ] Error responses match contract format
+```
+
+**Example Validation**:
+```bash
+# Capture actual response
+curl -s http://localhost:8000/api/endpoint | jq . > actual.json
+
+# Compare key fields against contract
+# Check: field names, nesting, types
+```
+
+**Common Issues**:
+- Backend returns flat structure, contract specifies nested
+- snake_case in Python, camelCase expected in contract
+- Optional fields returned as null vs omitted entirely
+- Arrays wrapped in extra object layer
 
 ## Status Reporting Rules
 
@@ -58,6 +99,8 @@ validation:
 - Optimistic reporting ("it should work") vs actual verification
 - Using PASS status for "close enough" matches
 - Declaring success before testing actual failure scenarios
+- Building frontend before validating API contract (NEW)
+- Assuming contract matches actual response without testing (NEW)
 
 ## Verification Checklist Template
 
@@ -81,9 +124,16 @@ validation:
 - [ ] Foreign keys reference valid targets
 - [ ] Sample queries return expected results
 
+### API Contracts (NEW)
+- [ ] Actual response structure matches contract
+- [ ] Field names match expected casing
+- [ ] Nested objects have correct shape
+- [ ] Error responses match contract
+
 ### Status: [PASS/WARN/FAIL]
 ```
 
 ## Evolution
 - v1.0.0: Initial version
 - v1.1.0: Added data pipeline verification, status reporting rules, anti-patterns, validation principles
+- v1.2.0: Added API contract verification patterns from 004-icp-decision-surface
