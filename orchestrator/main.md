@@ -1,131 +1,92 @@
-# Claude Code Orchestrator v1.2.0
+# Claude Code Orchestrator v1.1.0
 
 ## Role
-Intelligent task routing and skill management for Claude Code and SpecKit workflows.
+Intelligent task routing and skill management for Claude Code.
 
 ## Core Process
-1. **Analyze** - Understand the command and requirements
+1. **Analyze** - Understand the task and requirements
 2. **Load** - Select and load relevant skills from GitHub
 3. **Execute** - Apply skills with focused context
-4. **Learn** - Run retrospective and capture lessons
+4. **Validate** - Verify work meets requirements (NEW)
+5. **Learn** - Run retrospective and capture lessons
 
-## SpecKit Command Mapping
-
+## Skill Loading Logic
 ```python
-SPECKIT_SKILLS = {
-    "specify": [
-        "core/thinking",
-        "core/verification"
-    ],
-    "architecture": [
-        "core/thinking",
-        "development/cloud-architecture",
-        "development/data-modeling",     # NEW: Data modeling for architecture phase
-        "core/verification"
-    ],
-    "clarify": [
-        "core/thinking"
-    ],
-    "plan": [
-        "core/thinking",
-        "development/cloud-architecture",
-        "development/data-modeling",     # Reference during planning
-        "core/verification"
-    ],
-    "implement": [
-        "core/thinking",
-        "core/verification",
-        "development/python-tdd",
-        "development/debugging",
-        "core/retrospective"
-    ],
-    "tasks": [
-        "core/thinking"
-    ],
-    "analyze": [
-        "core/verification"
-    ]
-}
+def select_skills(task_description):
+    """Select optimal skills for task"""
+    # Always load core skills
+    skills = ["core/thinking", "core/verification"]
 
-def select_skills_for_command(command_name, task_description=""):
-    """Select skills based on SpecKit command"""
-    # Start with command-specific skills
-    skills = SPECKIT_SKILLS.get(command_name, ["core/thinking"])
+    # Add specialized skills based on keywords
+    task_lower = task_description.lower()
 
-    # Add context-based skills from description
-    if task_description:
-        task_lower = task_description.lower()
+    if any(word in task_lower for word in ["test", "tdd", "pytest"]):
+        skills.append("testing/unit-testing")
 
-        if any(word in task_lower for word in ["test", "tdd", "pytest"]):
-            if "development/python-tdd" not in skills:
-                skills.append("development/python-tdd")
+    if any(word in task_lower for word in ["lambda", "serverless", "api"]):
+        skills.append("infrastructure/serverless")
 
-        if any(word in task_lower for word in ["architecture", "aws", "infrastructure", "orchestration", "database"]):
-            if "development/cloud-architecture" not in skills:
-                skills.append("development/cloud-architecture")
+    if any(word in task_lower for word in ["debug", "fix", "error"]):
+        skills.append("development/debugging")
 
-        # Data modeling keyword detection
-        if any(word in task_lower for word in [
-            "data model", "schema", "database design", "entities",
-            "tables", "columns", "relationships", "medallion",
-            "dimensional model", "star schema", "normalized",
-            "denormalized", "fact table", "dimension", "event sourcing",
-            "streaming events", "kafka", "kinesis"
-        ]):
-            if "development/data-modeling" not in skills:
-                skills.append("development/data-modeling")
+    # NEW: Data engineering skills
+    if any(word in task_lower for word in ["duckdb", "csv", "parquet", "medallion", "bronze", "silver", "gold", "dbt"]):
+        skills.append("development/duckdb-patterns")
 
-        if any(word in task_lower for word in ["lambda", "serverless", "api"]):
-            if "infrastructure/serverless" not in skills:
-                skills.append("infrastructure/serverless")
+    # NEW: Ensure verification loaded for data work
+    if any(word in task_lower for word in ["data", "schema", "csv", "database", "migration"]):
+        if "core/verification" not in skills:
+            skills.append("core/verification")
 
-        if any(word in task_lower for word in ["debug", "fix", "error"]):
-            if "development/debugging" not in skills:
-                skills.append("development/debugging")
+    # Load retrospective for learning
+    skills.append("core/retrospective")
 
     return skills
 ```
 
-## Skill Loading Instructions
-
-When a SpecKit command is invoked:
-
-1. **Identify command**: Extract command name (e.g., "specify", "architecture", "implement")
-2. **Load base skills**: Fetch skills from `SPECKIT_SKILLS[command_name]`
-3. **Load context skills**: Add skills based on task description keywords
-4. **Fetch from GitHub**: Load each skill from `Drcollinjc/claude-skills@project/animis-analytics-agent`
-5. **Combine with constitution**: Apply local `.specify/memory/constitution.md` constraints
-6. **Execute**: Run SpecKit workflow with skill context
-7. **Retrospective**: After completion, capture lessons and update project branch
-
-## Example: /speckit.implement Flow
-
-```
-1. Orchestrator identifies: command="implement"
-2. Base skills loaded: thinking, verification, python-tdd, debugging, retrospective
-3. Skills fetched from: github.com/Drcollinjc/claude-skills/project/animis-analytics-agent/skills/
-4. Constitution loaded: .specify/memory/constitution.md
-5. Implementation executes with combined context
-6. Retrospective runs
-7. Lessons committed to project branch
-```
-
 ## Context Management
-- Maximum 4-5 active skills per command
-- Skills loaded at command start
-- Retrospective always runs at command end (for implement)
+- Maximum 3-4 active skills
+- Incremental context updates
+- Checkpoint every 5 iterations
+
+## Validation Reminders
+
+When completing tasks that involve:
+
+### 1. Infrastructure Changes
+- ALWAYS run `cdk synth` / `terraform plan` before marking complete
+- VERIFY generated config matches expected changes
+- CHECK for warnings or deprecations
+
+### 2. Data Changes
+- ALWAYS validate schema matches spec exactly
+- TEST data loading before building downstream models
+- NEVER accept "close enough" column counts
+- VERIFY foreign key relationships
+
+### 3. Code Changes
+- START the application and test critical path
+- CHECK logs for expected behavior
+- VERIFY error handling works
+- TEST actual failure scenarios, not just happy path
+
+### 4. Story Completion
+- Stories are only "done" when 100% of requirements met
+- Tests passing ≠ story complete
+- User feedback "let's keep working" = do not mark as done
 
 ## Learning Integration
-
-After SpecKit commands complete:
-1. Run retrospective skill (for implement, plan)
+After each task:
+1. Automatically trigger retrospective
 2. Extract patterns and lessons
-3. Update relevant skills in project branch
-4. Optionally PR to main for universal improvements
+3. Generate skill improvements
+4. Create PR if improvements found
 
 ## Version
-- Version: 1.2.0
-- Last Updated: 2025-11-13
-- Changes: Added data-modeling skill for /speckit.architecture and /speckit.plan commands
+- Version: 1.1.0
+- Last Updated: 2026-01-23
 - Evolution: Continuous via retrospectives
-- Branch: project/animis-analytics-agent
+
+## Changelog
+- v1.0.0: Initial orchestration system
+- v1.1.0: Added data engineering skill loading, validation reminders, validation step in core process
